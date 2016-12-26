@@ -4,11 +4,11 @@ A simple Python app to display images in a standalone window.
 
 ## design goals:
 
-1. Easily installable.
+1. Built by a hacker for other hackers. End-user is comfortable with running command line programs.
 1. Cross-platform (Mac (tested), Linux (not yet tested), Windows (not yet tested))
-1. Minimal dependencies.
+1. Easily installable with minimal dependencies.
 1. Executable from any directory.
-1. Simple.
+1. Does one thing and only one thing well.
 1. Not intended to be used as a library.
 
 ## purpose
