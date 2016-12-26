@@ -35,7 +35,7 @@ Via `pip`:
 $ pip install imgdisplay
 ```
 
-It's currently not `conda`-installable, because [`pywebview`][pywebview] depends on [`pyobjc`][pyobjc], which has no conda packages available on `conda-forge`. I'm sure other `conda` users would appreciate PRs to make them available!
+It's currently not `conda`-installable, because [`pywebview`][pywebview] depends on [`pyobjc`][pyobjc], and both have no conda packages available on `conda-forge`. I'm sure other `conda` users would appreciate PRs to make them available!
 
 [pywebview]: https://github.com/r0x0r/pywebview
 [pyobjc]: http://pythonhosted.org/pyobjc/
