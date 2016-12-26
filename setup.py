@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def readfile(filename):
@@ -8,18 +8,26 @@ def readfile(filename):
 
 setup(
     name="imgdisplay",
-    version="2016.12.26",
+    version="2016.12.26.19.22",
     description="A command-line app to slideshow photos in a directory.",
     long_description=readfile('README.md'),
     author="Eric J. Ma",
     author_email="ericmajinglong@gmail.com",
     url="https://github.com/ericmjl/imgdisplay",
-    # py_modules=['htbayes'],
-    packages=['imgdisplay'],
+    install_requires=['click==6.6',
+                      'Flask==0.11.1',
+                      'pywebview==1.3',
+                      ],
+    packages=find_packages(),
     license=readfile('LICENSE'),
     entry_points={
         'console_scripts': [
             'imgdisplay=imgdisplay.imgdisplay:start_server'
         ]
     },
+    package_data={
+        'static': 'imgdisplay/static/*',
+        'templates': 'imgdisplay/templates/*',
+    },
+    include_package_data=True,
 )
