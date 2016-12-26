@@ -1,0 +1,13 @@
+<!doctype html>
+<head>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styling.css') }}">
+<meta http-equiv="refresh" content="5">
+</head>
+
+<body>
+    <div>
+        {% if image %}
+          <img src="{{ url_for('random_image', imgname=image) }}"></img>
+        {% endif %}
+    </div>
+</body>
