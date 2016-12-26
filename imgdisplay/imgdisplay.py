@@ -12,11 +12,13 @@ app = Flask(__name__, instance_path=os.getcwd())
 
 
 @app.route('/')
-@app.route('/<refresh>')
 def hello():
-    files = os.listdir(os.getcwd())
-    image = choice([f for f in files if f[-4:] == '.jpg'])
-    return render_template('img.html', image=image)
+    files = [f for f in os.listdir(os.getcwd()) if f[-4:] == '.jpg']
+    if files:
+        image = choice(files)
+        return render_template('img.html', image=image)
+    else:
+        return render_template('img.html', error='No images in directory')
 
 
 @app.route('/image/<path:imgname>')
@@ -27,8 +29,7 @@ def random_image(imgname):
 @click.command()
 @click.option('--port', default=5000, help='Port number')
 @click.option('--host', default='localhost', help='Host name')
-@click.option('--refresh', default=5, help='Refresh time (seconds)')
-def start_server(port, host, refresh):
+def start_server(port, host):
     # Architected this way because my console_scripts entry point is at
     # start_server.
 
@@ -37,7 +38,7 @@ def start_server(port, host, refresh):
     t.start()
 
     webview.create_window("PiPhoto Display",
-                          "http://127.0.0.1:{0}".format(port, refresh))
+                          "http://127.0.0.1:{0}".format(port))
 
     sys.exit()
 
