@@ -35,10 +35,10 @@ Via `pip`:
 $ pip install imgdisplay
 ```
 
-Via `conda`:
-```bash
-$ conda install imgdisplay
-```
+It's currently not `conda`-installable, because [`pywebview`][pywebview] depends on [`pyobjc`][pyobjc], which has no conda packages available on `conda-forge`. I'm sure other `conda` users would appreciate PRs to make them available!
+
+[pywebview]: https://github.com/r0x0r/pywebview
+[pyobjc]: http://pythonhosted.org/pyobjc/
 
 # usage
 
@@ -60,3 +60,4 @@ To close/exit: close the terminal window, or close the app window. Both will do 
 # roadmap & future improvements
 
 - add ability to control time between refresh.
+- add auto-resize to window width and
