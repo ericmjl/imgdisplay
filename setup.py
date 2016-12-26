@@ -8,8 +8,8 @@ def readfile(filename):
 
 setup(
     name="imgdisplay",
-    version="2016.12.24",
-    description="",
+    version="2016.12.26",
+    description="A command-line app to slideshow photos in a directory.",
     long_description=readfile('README.md'),
     author="Eric J. Ma",
     author_email="ericmajinglong@gmail.com",
