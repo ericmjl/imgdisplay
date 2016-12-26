@@ -7,8 +7,10 @@ import os
 import threading
 import sys
 
-
-app = Flask(__name__, instance_path=os.getcwd())
+tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        'templates')
+app = Flask(__name__, template_folder=tmpl_dir)
+# app = Flask(__name__)
 
 
 @app.route('/')
