@@ -2,6 +2,15 @@
 
 A simple Python app to display images in a standalone window.
 
+## design goals:
+
+1. Easily installable.
+1. Cross-platform (Mac (tested), Linux (not yet tested), Windows (not yet tested))
+1. Minimal dependencies.
+1. Executable from any directory.
+1. Simple.
+1. Not intended to be used as a library.
+
 ## purpose
 
 I created this command-line app to enable anybody to display images in a random order when run from a given directory. It does nothing but this. Feel free to hack it to do something else!
