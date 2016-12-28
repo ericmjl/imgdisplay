@@ -1,5 +1,5 @@
 ---
-title: The Story Behind `imgdisplay`.
+title: The Story Behind `imgdisplay`
 author:
 - name: Eric J. Ma
 date: 28 December 2016
