@@ -1,0 +1,334 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <meta name="date" content="2016-12-28" />
+  <title>The Story Behind imgdisplay.</title>
+  <style type="text/css">code{white-space: pre;}</style>
+  <style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+  </style>
+  <link rel="stylesheet" href="template/notes.css" type="text/css" />
+  <link href="https://fonts.googleapis.com/css?family=PT+Sans" rel="stylesheet"></link>
+</head>
+<body>
+<div id="header">
+<h1 class="title">The Story Behind <code>imgdisplay</code>.</h1>
+<h2 class="author">by Eric J. Ma </h2>
+<h3 class="date">28 December 2016</h3>
+</div>
+<h1 id="overview">Overview</h1>
+<p>This winter, I decided to embark on a coding project purely for fun. In preparation to build my own Raspberry Pi photo display, I wanted to build an easily-installable, portable (across operating systems) and completely hackable stand-alone image displayer. This project ended up being an awesome way to get myself familiarized with a wide variety of concepts in web development, software packaging, and software distribution. I learned a ton, and I want to share the process behind it.</p>
+<p>The design goals were as follows:</p>
+<ol style="list-style-type: decimal">
+<li>It does one and only one thing well: run the app from any directory, and show the photos in that directory in a random order.</li>
+<li>It has to be easily distributable. I chose to use <code>pip</code> as my distribution mechanism, partly because of familiarity, partly be cause it is sufficiently ubiquitous (with Python).</li>
+<li>It should be completely hackable. My source code is up on <a href="https://github.com/ericmjl/imgdisplay">GitHub</a>. Anybody can fork it, hack it, and redistribute it. Go for it - it's BSD-3 licensed!</li>
+</ol>
+<p>The philosophical goals were pretty simple. Learn how to do the whole stack from scratch, and be free from commercial, closed-source software constraints by being free to build exactly what I need from reusable components.</p>
+<h1 id="writing-the-app-logic">Writing the App Logic</h1>
+<p>My choice of tools were as follows:</p>
+<ul>
+<li><code>Python</code> 3.5</li>
+<li><code>Flask</code>: great framework for web development in Python. Provides glue between Python and HTML.</li>
+<li><code>pywebview</code>: provides native GUI wrappers for each platform.</li>
+<li><code>click</code>: awesome framework for command-line options.</li>
+</ul>
+<p>My thought process here was as such: write the user-facing interface using HTML, and write application logic in Python, and we get automatic cross-platform portability. Run the app from the command-line, which is the lowest-common denominator for running applications.</p>
+<p>I structured my app as follows:</p>
+<pre><code>+ imgdisplay/
+    + imgdisplay/
+        + __init__.py
+        + imgdisplay.py  # this is where the main application logic is found.
+        + static/
+            + styling.css
+        + templates/
+            + img.html
+    + .gitignore
+    + LICENSE
+    + MANIFEST.in
+    + README.md
+    + requirements.txt
+    + setup.py</code></pre>
+<p>By most standards, this (at least in the eyes of pros) is probably a very, very simple Flask app.</p>
+<p>The app logic was the first part that I tackled. Let's start with the file <code>imgdisplay.py</code>.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="im">from</span> flask <span class="im">import</span> Flask, render_template, send_from_directory
+<span class="im">from</span> random <span class="im">import</span> choice
+
+<span class="im">import</span> webview
+<span class="im">import</span> click
+<span class="im">import</span> os
+<span class="im">import</span> threading
+<span class="im">import</span> sys
+
+<span class="co"># Section (A)</span>
+tmpl_dir <span class="op">=</span> os.path.join(os.path.dirname(os.path.abspath(<span class="va">__file__</span>)),
+                        <span class="st">&#39;templates&#39;</span>)
+app <span class="op">=</span> Flask(<span class="va">__name__</span>, template_folder<span class="op">=</span>tmpl_dir)
+
+
+<span class="co"># Section (B)</span>
+<span class="at">@app.route</span>(<span class="st">&#39;/&#39;</span>)
+<span class="kw">def</span> hello():
+    files <span class="op">=</span> [f <span class="cf">for</span> f <span class="kw">in</span> os.listdir(os.getcwd()) <span class="cf">if</span> f[<span class="op">-</span><span class="dv">4</span>:] <span class="op">==</span> <span class="st">&#39;.jpg&#39;</span>]
+    <span class="cf">if</span> files:
+        image <span class="op">=</span> choice(files)
+        <span class="cf">return</span> render_template(<span class="st">&#39;img.html&#39;</span>, image<span class="op">=</span>image)
+    <span class="cf">else</span>:
+        <span class="cf">return</span> render_template(<span class="st">&#39;img.html&#39;</span>, error<span class="op">=</span><span class="st">&#39;No images in directory&#39;</span>)
+
+
+<span class="co"># Section (C)</span>
+<span class="at">@app.route</span>(<span class="st">&#39;/image/&lt;path:imgname&gt;&#39;</span>)
+<span class="kw">def</span> random_image(imgname):
+    <span class="cf">return</span> send_from_directory(os.getcwd(), imgname, as_attachment<span class="op">=</span><span class="va">True</span>)
+
+
+<span class="co"># Section (D)</span>
+<span class="at">@click.command</span>()
+<span class="at">@click.option</span>(<span class="st">&#39;--port&#39;</span>, default<span class="op">=</span><span class="dv">5000</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&#39;Port number&#39;</span>)
+<span class="at">@click.option</span>(<span class="st">&#39;--host&#39;</span>, default<span class="op">=</span><span class="st">&#39;localhost&#39;</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&#39;Host name&#39;</span>)
+<span class="kw">def</span> start_server(port, host):
+    <span class="co"># Architected this way because my console_scripts entry point is at</span>
+    <span class="co"># start_server.</span>
+
+    kwargs <span class="op">=</span> {<span class="st">&#39;host&#39;</span>: host, <span class="st">&#39;port&#39;</span>: port}
+    t <span class="op">=</span> threading.Thread(target<span class="op">=</span>app.run, daemon<span class="op">=</span><span class="va">True</span>, kwargs<span class="op">=</span>kwargs)
+    t.start()
+
+    webview.create_window(<span class="st">&quot;PiPhoto Display&quot;</span>,
+                          <span class="co">&quot;http://127.0.0.1:{0}&quot;</span>.<span class="bu">format</span>(port))
+
+    sys.exit()
+
+
+<span class="co"># Section (E)</span>
+<span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&#39;__main__&#39;</span>:
+
+    start_server()</code></pre></div>
+<p>Here's my commentary on each of the sections.</p>
+<h2 id="section-a-flask-boilerplate.">Section A: Flask boilerplate.</h2>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">tmpl_dir <span class="op">=</span> os.path.join(os.path.dirname(os.path.abspath(<span class="va">__file__</span>)),
+                        <span class="st">&#39;templates&#39;</span>)
+app <span class="op">=</span> Flask(<span class="va">__name__</span>, template_folder<span class="op">=</span>tmpl_dir)</code></pre></div>
+<p>Here, we instantiate a Flask instance called <code>app</code>. The <code>tmpl_dir</code> variable was later added on, because I later learned that Flask apps had to look within the project directory for the <code>templates</code> folder; this variable ensures that the correct template directory path is specified.</p>
+<h2 id="section-b-main-application-logic.">Section B: Main application logic.</h2>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="at">@app.route</span>(<span class="st">&#39;/&#39;</span>)
+<span class="kw">def</span> hello():
+    files <span class="op">=</span> [f <span class="cf">for</span> f <span class="kw">in</span> os.listdir(os.getcwd()) <span class="cf">if</span> f[<span class="op">-</span><span class="dv">4</span>:] <span class="op">==</span> <span class="st">&#39;.jpg&#39;</span>]
+    <span class="cf">if</span> files:
+        image <span class="op">=</span> choice(files)
+        <span class="cf">return</span> render_template(<span class="st">&#39;img.html&#39;</span>, image<span class="op">=</span>image)
+    <span class="cf">else</span>:
+        <span class="cf">return</span> render_template(<span class="st">&#39;img.html&#39;</span>, error<span class="op">=</span><span class="st">&#39;No images in directory&#39;</span>)</code></pre></div>
+<p>This is Flask's &quot;hello world&quot; function expanded. What we're doing here is reading a list of <code>.jpg</code> files from the bash shell's current working directory. If there are images present, we tell choose one file, and tell Flask to render the template (<code>render_template</code>) <code>img.html</code> passing in an <code>image</code> to the <code>image</code> keyword argument. If none, we pass in an error text message to the <code>error</code> keyword argument.</p>
+<p>If this were a more complicated app, we would probably move to an MVC-like model, where the application logic would be in an importable module adjacent to the rendering code. Here, because the logic is simple enough, and only really amounts to three lines of Python, it's simple enough to not require placing it in a separate Python module.</p>
+<p>I think at this point, it's best to show how these will get rendered. Below is <code>img.html</code>, the template that is being used.</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"><span class="er">&lt;</span>!doctype html&gt;
+<span class="kw">&lt;head&gt;</span>
+<span class="kw">&lt;link</span><span class="ot"> rel=</span><span class="st">&quot;stylesheet&quot;</span><span class="ot"> type=</span><span class="st">&quot;text/css&quot;</span><span class="ot"> href=</span><span class="st">&quot;{{ url_for(&#39;static&#39;, filename=&#39;styling.css&#39;) }}&quot;</span><span class="kw">&gt;</span>
+<span class="kw">&lt;meta</span><span class="ot"> http-equiv=</span><span class="st">&quot;refresh&quot;</span><span class="ot"> content=</span><span class="st">&quot;5&quot;</span><span class="kw">&gt;</span>
+<span class="kw">&lt;/head&gt;</span>
+
+<span class="kw">&lt;body&gt;</span>
+    <span class="kw">&lt;div&gt;</span>
+        {% if image %}
+          <span class="kw">&lt;img</span><span class="ot"> src=</span><span class="st">&quot;{{ url_for(&#39;random_image&#39;, imgname=image) }}&quot;</span><span class="kw">&gt;&lt;/img&gt;</span>
+        {% endif %}
+
+        {% if error %}
+          <span class="kw">&lt;p</span><span class="ot"> style=</span><span class="st">&quot;color:white&quot;</span><span class="kw">&gt;</span>
+              {{ error }}
+          <span class="kw">&lt;/p&gt;</span>
+        {% endif %}
+    <span class="kw">&lt;/div&gt;</span>
+<span class="kw">&lt;/body&gt;</span></code></pre></div>
+<p>Flask uses <code>jinja2</code> templating - what this basically means is that we can insert Python-like code into other text-based files, allowing for passed in values to be substituted. For example, consider the block below:</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html">{% if error %}
+  <span class="kw">&lt;p</span><span class="ot"> style=</span><span class="st">&quot;color:white&quot;</span><span class="kw">&gt;</span>
+      {{ error }}
+  <span class="kw">&lt;/p&gt;</span>
+{% endif %}</code></pre></div>
+<p>What this is essentially saying is: if the &quot;error&quot; keyword from <code>render_template</code> is not a null value, fill in the value passed to the <code>error</code> keyword (<code>{{ error }}</code>).</p>
+<p>What about the header? It's got something much more complicated in there, the <code>url_for</code> function.</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"><span class="er">&lt;</span>!doctype html&gt;
+<span class="kw">&lt;head&gt;</span>
+<span class="kw">&lt;link</span><span class="ot"> rel=</span><span class="st">&quot;stylesheet&quot;</span><span class="ot"> type=</span><span class="st">&quot;text/css&quot;</span><span class="ot"> href=</span><span class="st">&quot;{{ url_for(&#39;static&#39;, filename=&#39;styling.css&#39;) }}&quot;</span><span class="kw">&gt;</span>
+<span class="kw">&lt;meta</span><span class="ot"> http-equiv=</span><span class="st">&quot;refresh&quot;</span><span class="ot"> content=</span><span class="st">&quot;5&quot;</span><span class="kw">&gt;</span>
+<span class="kw">&lt;/head&gt;</span></code></pre></div>
+<p>What this is saying here is render the URL for (<code>url_for</code>) the static directory to load the CSS file <code>styling.css</code>, which allows us to use the static CSS file to style the user interface appropriately. If you inspect the HTML source after rendering, you will see that it maps to <code>/static/styling.css</code>.</p>
+<p>What about the image?</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html">{% if image %}
+  <span class="kw">&lt;img</span><span class="ot"> src=</span><span class="st">&quot;{{ url_for(&#39;random_image&#39;, imgname=image) }}&quot;</span><span class="kw">&gt;&lt;/img&gt;</span>
+{% endif %}</code></pre></div>
+<p>It's a bit complicated, so let me try my best to explain what's going on. This uses the <code>url_for</code> function, which is Flask magic for saying, &quot;render the URL for a particular function&quot; (<code>{{ url_for('random_image',...</code>), while passing in the necessary keywords arguments to that function (<code>... imgname=image) }}</code>). But... where did the <code>random_image</code> function come from, and why is it's keyword arguments named as <code>imgname</code>?</p>
+<p>Well, that's the best segue into Section C.</p>
+<h2 id="section-c-random_image...">Section C: random_image...?!</h2>
+<p>If by the end of my own explanation you don't get it, don't worry. The inner workings remain a bit of black magic to me still. Here's the code:</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="at">@app.route</span>(<span class="st">&#39;/image/&lt;path:imgname&gt;&#39;</span>)
+<span class="kw">def</span> random_image(imgname):
+    <span class="cf">return</span> send_from_directory(os.getcwd(), imgname, as_attachment<span class="op">=</span><span class="va">True</span>)</code></pre></div>
+<p>This function is what is called in the <code>img.html</code> template. The function takes in an image name <code>imgname</code> keyword argument, which is then passed to Flask's <code>send_from_directory()</code> function. Here, we are essentially saying, &quot;get the file <code>imgname</code> from the directory <code>os.getcwd()</code>, as an attachment (<code>as_attachment=True</code>), and send it to Flask.&quot;</p>
+<p>Somehow, this provides the correct way to send the image file to the browser renderer.</p>
+<p><strong>Side note:</strong> Figuring this out turned out to be the better of a whole day's worth of debugging and reading through the Flask package documentation, plus another half a day on Stack Overflow trying to figure out the right coding patterns. Once I figured this out, almost everything else fell into place for the minimum-viable-product version of the app.</p>
+<h2 id="section-d-execution">Section D: Execution</h2>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="at">@click.command</span>()
+<span class="at">@click.option</span>(<span class="st">&#39;--port&#39;</span>, default<span class="op">=</span><span class="dv">5000</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&#39;Port number&#39;</span>)
+<span class="at">@click.option</span>(<span class="st">&#39;--host&#39;</span>, default<span class="op">=</span><span class="st">&#39;localhost&#39;</span>, <span class="bu">help</span><span class="op">=</span><span class="st">&#39;Host name&#39;</span>)
+<span class="kw">def</span> start_server(port, host):
+    <span class="co"># Architected this way because my console_scripts entry point is at</span>
+    <span class="co"># start_server.</span>
+
+    kwargs <span class="op">=</span> {<span class="st">&#39;host&#39;</span>: host, <span class="st">&#39;port&#39;</span>: port}
+    t <span class="op">=</span> threading.Thread(target<span class="op">=</span>app.run, daemon<span class="op">=</span><span class="va">True</span>, kwargs<span class="op">=</span>kwargs)
+    t.start()
+
+    webview.create_window(<span class="st">&quot;PiPhoto Display&quot;</span>,
+                          <span class="co">&quot;http://{0}:{1}&quot;</span>.<span class="bu">format</span>(host, port))
+
+    sys.exit()</code></pre></div>
+<p>This part of the code was totally inspired by <a href="https://joecodeswell.wordpress.com/2016/08/09/flask-with-pywebview-example/">Joe Dorocak</a>, but I had to modify it a little bit to fit my use case (using <code>console_scripts</code> as part of the <code>entry_points</code>). The idea here for this code is to create a new thread that runs the app, and then use pywebview to open a new GUI window that loads the appropriate URL. The other big idea is that I could invoke <code>imgdisplay</code> from the command-line using the call:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">imgdisplay</span></code></pre></div>
+<p>In order to do so, everything that needs to happen when executing has to happen within the function that the <code>imgdisplay</code> bash command is mapped to; which happens to be <code>start_server</code>. Joe's example puts all of the logic under <code>if __name__ == __main__</code>, because the assumption there is that the code is executed by running:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="ex">python</span> imgdisplay.py</code></pre></div>
+<p>According to the design goals stated above, the former fulfills the goals better than the latter, because in the latter, I would have to copy <code>imgdisplay.py</code> into the directory that I needed. Therefore, I had to hack Joe's example a tiny bit to get it to work the way I wanted. If there's a better way to do it, I'd love to hear!</p>
+<h2 id="section-e-execution">Section E: Execution</h2>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&#39;__main__&#39;</span>:
+
+    start_server()</code></pre></div>
+<p>This is boilerplate, but in case anybody wants to run the script from the main project folder (<code>imgdisplay/</code>), for whatever reason, they'd be able to.</p>
+<h1 id="styling">Styling</h1>
+<p>I did my prototyping using Chrome on macOS Sierra. The order in which I presented the code above corresponded roughly to the order in which the code became more and more complex. I had to iterate between coding + testing in the browser. Styling was a pretty fun part of the iteration process. Here's my CSS code:</p>
+<div class="sourceCode"><pre class="sourceCode css"><code class="sourceCode css">html <span class="kw">{</span>
+    <span class="kw">height:</span> <span class="dt">600px</span><span class="kw">;</span>
+<span class="kw">}</span>
+
+body <span class="kw">{</span>
+    <span class="kw">font-family:</span> <span class="st">&quot;PT Sans&quot;</span><span class="kw">;</span>
+    <span class="kw">padding-left:</span> <span class="dt">1rem</span><span class="kw">;</span>
+    <span class="kw">padding-right:</span> <span class="dt">1rem</span><span class="kw">;</span>
+    <span class="kw">padding-top:</span> <span class="dt">1rem</span><span class="kw">;</span>
+    <span class="kw">padding-bottom:</span> <span class="dt">1rem</span><span class="kw">;</span>
+    <span class="kw">height:</span> <span class="dt">100%</span><span class="kw">;</span>
+    <span class="kw">background:</span> <span class="dt">black</span><span class="kw">;</span>
+<span class="kw">}</span>
+
+div <span class="kw">{</span>
+    <span class="kw">max-width:</span> <span class="dt">100%</span><span class="kw">;</span>
+    <span class="kw">max-height:</span> <span class="dt">600px</span><span class="kw">;</span>
+    <span class="kw">text-align:</span> <span class="dt">center</span><span class="kw">;</span>
+<span class="kw">}</span>
+
+div &gt; img <span class="kw">{</span>
+    <span class="kw">max-height:</span> <span class="dt">600px</span><span class="kw">;</span>
+    <span class="kw">max-width:</span> <span class="dt">100%</span><span class="kw">;</span>
+<span class="kw">}</span></code></pre></div>
+<p>The idea behind the styling was to make the image stand out by using a black background, while making sure that the height of the image stayed a maximum of 600 px. In the future, I'd like this to be an adjustable parameter... or maybe not. We'll see.</p>
+<h1 id="packaging-for-distribution">Packaging for Distribution</h1>
+<p>This is one of the places where I've had a number of spectacular failures in the past, particularly because Python's packaging documentation is, in my opinion, out of line with the Zen of Python's philosophy of &quot;there should be preferably one and only one way of doing things&quot;. I think what's missing from the official documentation is clear-cut examples for packaging Python packages, modules, and command-line programs, and examples of where they mix. If I get a chance in the future, I might contribute that.</p>
+<h2 id="setup-script">Setup Script</h2>
+<p>Anyways, here's the setup script:</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python"><span class="im">from</span> setuptools <span class="im">import</span> setup, find_packages
+
+
+<span class="kw">def</span> readfile(filename):
+    <span class="cf">with</span> <span class="bu">open</span>(filename, <span class="st">&#39;r+&#39;</span>) <span class="im">as</span> f:
+        <span class="cf">return</span> f.read()
+
+
+setup(
+    name<span class="op">=</span><span class="st">&quot;imgdisplay&quot;</span>,
+    version<span class="op">=</span><span class="st">&quot;2016.12.26.19.35&quot;</span>,
+    description<span class="op">=</span><span class="st">&quot;A command-line app to slideshow photos in a directory.&quot;</span>,
+    long_description<span class="op">=</span>readfile(<span class="st">&#39;README.md&#39;</span>),
+    author<span class="op">=</span><span class="st">&quot;Eric J. Ma&quot;</span>,
+    author_email<span class="op">=</span><span class="st">&quot;my_email&quot;</span>,
+    url<span class="op">=</span><span class="st">&quot;https://github.com/ericmjl/imgdisplay&quot;</span>,
+    install_requires<span class="op">=</span>[<span class="st">&#39;click==6.6&#39;</span>,
+                      <span class="co">&#39;Flask==0.11.1&#39;</span>,
+                      <span class="co">&#39;pywebview==1.3&#39;</span>,
+                      ],
+    packages<span class="op">=</span>find_packages(),
+    license<span class="op">=</span>readfile(<span class="st">&#39;LICENSE&#39;</span>),
+    entry_points<span class="op">=</span>{
+        <span class="st">&#39;console_scripts&#39;</span>: [
+            <span class="st">&#39;imgdisplay=imgdisplay.imgdisplay:start_server&#39;</span>
+        ]
+    },
+    package_data<span class="op">=</span>{
+        <span class="st">&#39;static&#39;</span>: <span class="st">&#39;imgdisplay/static/*&#39;</span>,
+        <span class="co">&#39;templates&#39;</span>: <span class="st">&#39;imgdisplay/templates/*&#39;</span>,
+    },
+    include_package_data<span class="op">=</span><span class="va">True</span>,
+)</code></pre></div>
+<p>Before we go on, please ignore my version numbering system. It's essentially the current date and time... While I know semantic versioning and the likes, for this single project, I decided to go simple and not worry about more complex stuff.</p>
+<p>There's a few key stuff I learned here.</p>
+<p>Firstly, the big highlight: making my package command-line accessible.</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">entry_points<span class="op">=</span>{
+    <span class="st">&#39;console_scripts&#39;</span>: [
+        <span class="st">&#39;imgdisplay=imgdisplay.imgdisplay:start_server&#39;</span>
+    ]
+},</code></pre></div>
+<p>What this is saying is &quot;map the <code>start_server()</code> function to the command <code>imgdisplay</code>&quot;. That creates the <code>imgdisplay</code> magic command that runs the app, because the entirety of the execution logic is contained in that function.</p>
+<p>Secondly, including static data:</p>
+<div class="sourceCode"><pre class="sourceCode python"><code class="sourceCode python">package_data<span class="op">=</span>{
+    <span class="st">&#39;static&#39;</span>: <span class="st">&#39;imgdisplay/static/*&#39;</span>,
+    <span class="co">&#39;templates&#39;</span>: <span class="st">&#39;imgdisplay/templates/*&#39;</span>,
+},
+include_package_data<span class="op">=</span><span class="va">True</span>,</code></pre></div>
+<p>This is <strong>very, very important</strong> for running the Flask app. The <code>static</code> and <code>templates</code> folders are default folders that Flask automatically looks for. These have to be packaged and distributed together in order for the app to work properly.</p>
+<h2 id="building-distribution">Building Distribution</h2>
+<p>To build the distribution at the command line, according to <a href="http://www.plankandwhittle.com/packaging-a-flask-web-app/">Plank &amp; Whittle's</a> website, there are two options for Python packages: a binary file, which contains only Python code, and a source distribution, which contains Python code + other files packaged in. Flask apps can only be distributed as a source distribution, so binary distributions are out of luck. I made the mistake of uploading a binary distribution to PyPI, and that cost me hours of debugging to get out of it, which I finally did. So here's the &quot;correct&quot; set of commands needed to avoid this headache:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="bu">cd</span> /path/to/project
+$ <span class="co"># execute the following line only if dist/ exists and there&#39;s stuff inside</span>
+$ <span class="fu">rm</span> dist/*
+$ <span class="co"># the following command builds the source distribution</span>
+$ <span class="ex">python</span> setup.py sdist
+$ <span class="co"># the following command uploads the package to PyPI!!!!!!!!</span>
+$ <span class="ex">twine</span> upload dist/*
+$ <span class="co"># you will be prompted for username &amp; password to PyPI</span>
+$ <span class="co"># remove stuff under dist/* to keep it clean for updates.</span>
+$ <span class="fu">rm</span> dist/*</code></pre></div>
+<p>At all costs, <strong>do not run</strong> <code>python setup.py sdist bdist_wheel</code>. This works for other pure Python packages, but not for Flask apps that are bundled with static files.</p>
+<h1 id="summary">Summary</h1>
+<p>With that, that was it! Through this project, I was able to learn more about the insides of Python packaging &amp; distribution, making my Python tools accessible through the command line, developing web &amp; cross-platform interfaces, and working with really popular frameworks (Flask, click, pywebview). Big learning journey, only made possible because of some time taken off to let my mind wander away from other real work.</p>
+<p>Do I see this fitting in with my current work? Yep, absolutely. There's some times in research where nothing beats building a prototype of a final product that I'm envisioning, for example, the front-end to a</p>
+<p>I'd love to get feedback on how it could be improved, but more importantly, contributions are really welcome! Please be kind in feedback, I'm still a relative newbie with web development, so keeping things positive would help keep things encouraging. Hope you enjoyed the post!</p>
+</body>
+</html>
