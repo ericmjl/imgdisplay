@@ -14,11 +14,12 @@ app = Flask(__name__, template_folder=tmpl_dir)
 
 
 @app.route('/')
-def hello():
+@app.route('/<height>')
+def hello(height=600):
     files = [f for f in os.listdir(os.getcwd()) if f[-4:] == '.jpg']
     if files:
         image = choice(files)
-        return render_template('img.html', image=image)
+        return render_template('img.html', image=image, maxheight=height)
     else:
         return render_template('img.html', error='No images in directory')
 
@@ -31,7 +32,9 @@ def random_image(imgname):
 @click.command()
 @click.option('--port', default=5000, help='Port number')
 @click.option('--host', default='localhost', help='Host name')
-def start_server(port, host):
+@click.option('--height', default=700)
+@click.option('--width', default=900)
+def start_server(port, host, height, width):
     # Architected this way because my console_scripts entry point is at
     # start_server.
 
@@ -40,7 +43,11 @@ def start_server(port, host):
     t.start()
 
     webview.create_window("PiPhoto Display",
-                          "http://127.0.0.1:{0}".format(port))
+                          "http://127.0.0.1:{port}/{height}".format(
+                              port=port, height=height),
+                          height=height*1.1,
+                          width=width,
+                          )
 
     sys.exit()
 

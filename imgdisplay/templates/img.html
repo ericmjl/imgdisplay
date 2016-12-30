@@ -1,6 +1,31 @@
 <!doctype html>
 <head>
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styling.css') }}">
+<style>
+    html {
+        height: 600px;
+    }
+
+    body {
+        font-family: "PT Sans";
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        height: 100%;
+        background: black;
+    }
+
+    div {
+        max-width: 100%;
+        max-height: {{ maxheight }}px;
+        text-align: center;
+    }
+
+    div > img {
+        max-height: {{ maxheight }}px;
+        max-width: 100%;
+    }
+</style>
 <meta http-equiv="refresh" content="5">
 </head>
 
