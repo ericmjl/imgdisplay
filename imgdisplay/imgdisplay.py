@@ -41,8 +41,8 @@ def close():
 @click.command()
 @click.option('--port', default=5000, help='Port number')
 @click.option('--host', default='localhost', help='Host name')
-@click.option('--width', default=1024)
-@click.option('--height', default=600)
+@click.option('--width', default=1024, help='Max image width.')
+@click.option('--height', default=600, help='Max image height.')
 def start_server(port, host, height, width):
     # Architected this way because my console_scripts entry point is at
     # start_server.
