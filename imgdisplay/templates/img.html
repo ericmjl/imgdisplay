@@ -25,11 +25,18 @@
         max-height: {{ maxheight }}px;
         max-width: 100%;
     }
+
+    a {
+        color: white;
+    }
 </style>
-<meta http-equiv="refresh" content="5">
+<meta http-equiv="refresh" content="7">
 </head>
 
 <body>
+    <div>
+        <a href="{{ url_for('close') }}">[close]</a>
+    </div>
     <div>
         {% if image %}
           <img src="{{ url_for('random_image', imgname=image) }}"></img>

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, send_from_directory, make_response
 from random import choice
 
 import webview
@@ -10,7 +10,6 @@ import sys
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
-# app = Flask(__name__)
 
 
 @app.route('/')
@@ -29,11 +28,21 @@ def random_image(imgname):
     return send_from_directory(os.getcwd(), imgname, as_attachment=True)
 
 
+@app.route('/close')
+def close():
+    """
+    Adds a rudimentary "close window" function to the UI.
+    """
+    response = make_response('Closing window...')
+    webview.destroy_window()
+    return response
+
+
 @click.command()
 @click.option('--port', default=5000, help='Port number')
 @click.option('--host', default='localhost', help='Host name')
-@click.option('--height', default=700)
-@click.option('--width', default=900)
+@click.option('--width', default=1024)
+@click.option('--height', default=600)
 def start_server(port, host, height, width):
     # Architected this way because my console_scripts entry point is at
     # start_server.
@@ -45,8 +54,9 @@ def start_server(port, host, height, width):
     webview.create_window("PiPhoto Display",
                           "http://127.0.0.1:{port}/{height}".format(
                               port=port, height=height),
-                          height=height*1.1,
-                          width=width,
+                          # height=height*1.1,
+                          # width=width,
+                          fullscreen=True,
                           )
 
     sys.exit()
