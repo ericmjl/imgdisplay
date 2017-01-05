@@ -6,6 +6,7 @@ import click
 import os
 import threading
 import sys
+import gc
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         'templates')
@@ -15,6 +16,7 @@ app = Flask(__name__, template_folder=tmpl_dir)
 @app.route('/')
 @app.route('/<height>')
 def hello(height=600):
+    gc.collect()
     files = [f for f in os.listdir(os.getcwd()) if f[-4:] == '.jpg']
     if files:
         image = choice(files)
