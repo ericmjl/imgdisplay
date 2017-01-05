@@ -54,7 +54,7 @@ def start_server(port, host, height, width):
     webview.create_window("PiPhoto Display",
                           "http://127.0.0.1:{port}/{height}".format(
                               port=port, height=height),
-                          height=height + 10,
+                          height=int(height) + 10,
                           fullscreen=True,
                           )
 
