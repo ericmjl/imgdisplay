@@ -47,19 +47,17 @@ def start_server(port, host, height, width):
     # Architected this way because my console_scripts entry point is at
     # start_server.
 
+    # Known issue: on Raspbian, with a 7" display, the right scroll bar will
+    # continue to be shown in fullscreen mode.
+
     kwargs = {'host': host, 'port': port}
     t = threading.Thread(target=app.run, daemon=True, kwargs=kwargs)
     t.start()
 
-    fullscreen = False
-    if not height and not width:
-        fullscreen = True
-
     webview.create_window("PiPhoto Display",
                           "http://127.0.0.1:{port}/{height}".format(
                               port=port, height=height),
-                          height=int(height) + 10,
-                          fullscreen=fullscreen,
+                          fullscreen=True,
                           )
 
     sys.exit()
