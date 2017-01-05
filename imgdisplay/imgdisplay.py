@@ -41,8 +41,8 @@ def close():
 @click.command()
 @click.option('--port', default=5432, help='Port number')
 @click.option('--host', default='localhost', help='Host name')
-@click.option('--width', default=1024, help='Max image width.')
-@click.option('--height', default=600, help='Max image height.')
+@click.option('--width', default=None, help='Max image width.')
+@click.option('--height', default=None, help='Max image height.')
 def start_server(port, host, height, width):
     # Architected this way because my console_scripts entry point is at
     # start_server.
@@ -51,11 +51,15 @@ def start_server(port, host, height, width):
     t = threading.Thread(target=app.run, daemon=True, kwargs=kwargs)
     t.start()
 
+    fullscreen = False
+    if not height and not width:
+        fullscreen=True
+
     webview.create_window("PiPhoto Display",
                           "http://127.0.0.1:{port}/{height}".format(
                               port=port, height=height),
                           height=int(height) + 10,
-                          fullscreen=True,
+                          fullscreen=fullscreen,
                           )
 
     sys.exit()
